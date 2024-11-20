@@ -43,28 +43,29 @@ char* process_inline_formatting(const char* source) {
 }
 
 void parse_markdown_line(const char* line, FILE* output) {
-    static int in_list = 0;       // Track if we're inside a list
-    static int list_stack[10] = {0}; // Stack to track list types at each level
-    static int stack_depth = 0;    // Current depth of nested lists
-    static int current_list_type = -1; // Current main list type (-1 = none, 0 = ul, 1 = ol)
-    static int last_level = 0;    // Track last indentation level
+    static int in_list = 0;       // track if we're inside a list
+    static int list_stack[10] = {0}; // stack to track list types at each level
+    static int stack_depth = 0;    // current depth of nested lists
+    static int current_list_type = -1; // current main list type (-1 = none, 0 = ul, 1 = ol)
+    static int last_level = 0;    // track last indentation level
+    static int in_paragraph = 0;        // track if currently on simple paragraph
 
     int indent = 0;
     const char* trimmed = line;
 
-    // Determine indentation level
+    // determine indentation level
     while (*trimmed == ' ') {
         indent++;
         trimmed++;
     }
 
-    // Skip empty lines
-    if (*trimmed == '\n' || *trimmed == '\0') {
-        fprintf(output, "\n");
-        return;
-    }
+    // skip empty lines
+    // if (*trimmed == '\n' || *trimmed == '\0') {
+    //     fprintf(output, "\n");
+    //     return;
+    // }
 
-    // Detect list item
+    // detect list item
     int is_list_item = 0;
     int new_list_type = -1;
     int marker_length = 0;
@@ -87,7 +88,7 @@ void parse_markdown_line(const char* line, FILE* output) {
         trimmed += marker_length + 1;  // Skip marker and space
         int level = indent / 2;  // Assume 2-space indentation
 
-        // Start new list if needed
+        // start new list if needed
         if (!in_list) {
             fprintf(output, "%s\n", new_list_type == 1 ? "<ol>" : "<ul>");
             current_list_type = new_list_type;
@@ -95,20 +96,20 @@ void parse_markdown_line(const char* line, FILE* output) {
             stack_depth = 1;
             in_list = 1;
         }
-        // Handle nested lists
+        // handle nested lists
         else if (level > last_level) {
-            // Only create one new list level regardless of indent difference
+            // only create one new list level regardless of indent difference
             fprintf(output, "%s\n", new_list_type == 1 ? "<ol>" : "<ul>");
             list_stack[stack_depth] = new_list_type;
             stack_depth++;
         }
         // Handle moving back to previous level
         else if (level < last_level) {
-            // Close one list level
+            // close one list level
             fprintf(output, "%s\n", list_stack[stack_depth - 1] == 1 ? "</ol>" : "</ul>");
             stack_depth--;
             
-            // If we're back at root level and list type changes
+            // if we're back at root level and list type changes
             if (level == 0 && new_list_type != current_list_type) {
                 while (stack_depth > 0) {
                     fprintf(output, "%s\n", list_stack[stack_depth - 1] == 1 ? "</ol>" : "</ul>");
@@ -120,7 +121,7 @@ void parse_markdown_line(const char* line, FILE* output) {
                 stack_depth = 1;
             }
         }
-        // Same level but different list type (only for root level)
+        // same level but different list type (only for root level)
         else if (level == 0 && new_list_type != current_list_type) {
             while (stack_depth > 0) {
                 fprintf(output, "%s\n", list_stack[stack_depth - 1] == 1 ? "</ol>" : "</ul>");
@@ -132,11 +133,11 @@ void parse_markdown_line(const char* line, FILE* output) {
             stack_depth = 1;
         }
 
-        // Output the list item
+        // output the list item
         fprintf(output, "<li>%s</li>\n", process_inline_formatting(trimmed));
         last_level = level;
     } else if (in_list) {
-        // Close all open lists when transitioning to non-list content
+        // close all open lists when transitioning to non-list content
         while (stack_depth > 0) {
             fprintf(output, "%s\n", list_stack[stack_depth - 1] == 1 ? "</ol>" : "</ul>");
             stack_depth--;
@@ -145,24 +146,48 @@ void parse_markdown_line(const char* line, FILE* output) {
         current_list_type = -1;
         last_level = 0;
 
-        // Process the non-list content
+        // process the non-list content
         if (line[0] == '#') {
             int level = 0;
             while (line[level] == '#') level++;
             fprintf(output, "<h%d>%s</h%d>\n", level, 
                    process_inline_formatting(line + level + 1), level);
         } else {
-            fprintf(output, "<p>%s</p>\n", process_inline_formatting(line));
+            // normal paragraph
+            if (in_paragraph == 0) {
+                in_paragraph = 1;
+                fprintf(output, "<p>%s", process_inline_formatting(line));
+            } else {
+                if (line[0] == '\n') {
+                    in_paragraph = 0;
+                    fprintf(output, "</p>%s", process_inline_formatting(line));
+                } else {
+                    fprintf(output, "%s", process_inline_formatting(line));
+                }
+            }
         }
     } else {
-        // Regular non-list content
+        // regular non-list content
         if (line[0] == '#') {
             int level = 0;
             while (line[level] == '#') level++;
             fprintf(output, "<h%d>%s</h%d>\n", level, 
                    process_inline_formatting(line + level + 1), level);
         } else {
-            fprintf(output, "<p>%s</p>\n", process_inline_formatting(line));
+            // normal paragraph
+            if (in_paragraph == 0) {
+                in_paragraph = 1;
+                fprintf(output, "<p>%s", process_inline_formatting(line));
+            } else {
+                if (line[0] == '\n') {
+                    in_paragraph = 0;
+                    fprintf(output, "</p>%s", process_inline_formatting(line));
+                } else {
+                    fprintf(output, "%s", process_inline_formatting(line));
+                }
+            }
+            // printf("%d ", line[0]);
+            // fprintf(output, "<p>%s</p>\n", process_inline_formatting(line));
         }
     }
 }
