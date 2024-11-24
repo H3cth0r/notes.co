@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
 
     char line[MAX_LINE_LENGTH];
     while (fgets(line, sizeof(line), input)) {
-        parse_markdown_line(line, output);
+        parse_markdown_line(input, line, output);
     }
 
     fprintf(output, "</body>\n</html>\n");
