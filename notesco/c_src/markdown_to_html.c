@@ -535,3 +535,39 @@ void parse_markdown_line(FILE* input, const char* line, FILE* output) {
         }
     }
 }
+
+int process_markdown_file(const char* input_filename, const char* output_filename) {
+    // Open input file
+    FILE* input = fopen(input_filename, "r");
+    if (!input) {
+        perror("Error opening input file");
+        return 1;
+    }
+
+    // Open output file
+    FILE* output = fopen(output_filename, "w");
+    if (!output) {
+        perror("Error opening output file");
+        fclose(input);
+        return 1;
+    }
+
+    // Write HTML header
+    fprintf(output, "<!DOCTYPE html>\n<html>\n<head>\n<title>Markdown to HTML</title>\n</head>\n<body>\n");
+
+    // Process the file line by line
+    char line[MAX_LINE_LENGTH];
+    while (fgets(line, sizeof(line), input)) {
+        parse_markdown_line(input, line, output);
+    }
+
+    // Write HTML footer
+    fprintf(output, "</body>\n</html>\n");
+
+    // Close files
+    fclose(input);
+    fclose(output);
+
+    printf("Markdown converted to HTML successfully.\n");
+    return 0;
+}

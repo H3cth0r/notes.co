@@ -30,4 +30,6 @@ char* process_inline_formatting(const char* source);
 
 void parse_markdown_line(FILE* input, const char* line, FILE* output);
 
+int process_markdown_file(const char* input_filename, const char* output_filename);
+
 #endif 
