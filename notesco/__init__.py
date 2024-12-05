@@ -1,5 +1,8 @@
 import argparse
 import os
+import sys
+from .my_markdown_extension import process_markdown_file
+
 
 __version__ = "0.1.0"
 def show_version(): print(f"notesco version {__version__}")
@@ -67,13 +70,22 @@ Usage Examples:
         print("Error: Input file must have .md extension")
         sys.exit(1)
 
-    if all([args.html_output]) and not args.html_output.endswith('.html'):
+    if args.html_output and not args.html_output.endswith('.html'):
         print("Error: Output file must have .html extension")
         sys.exit(1)
 
-    os.makedirs(args.html_output, exist_ok=True)
+    # if args.html_output: os.makedirs(args.html_output, exist_ok=True)
 
     # Apply notesco functionality
+    try:
+        if args.html_output: 
+            process_markdown_file(args.markdown_file, args.html_output)
+        else: 
+            output_name = args.markdown_file.replace('.md', '.html')
+            process_markdown_file(args.markdown_file, output_name)
+    except Exception as e:
+        print(f"Error generating output file: {str(e)}")
+        sys.exit(1)
 
     
 if __name__ == '__main__':

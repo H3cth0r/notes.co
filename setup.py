@@ -11,8 +11,6 @@ markdown_extension = Extension(
     extra_compile_args=["-std=c99"],
 )
 
-# from setuptools import setup, find_packages
-
 setup(
         name="notesco",
         version="0.1.0",
