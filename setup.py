@@ -17,11 +17,11 @@ setup(
         name="notesco",
         version="0.1.0",
         packages=find_packages(),
-        # entry_points={
-        #     'console_scripts': [
-        #         'wrapcco=wrapcco:main',
-        #     ],
-        # },
+        entry_points={
+            'console_scripts': [
+                'notesco=notesco:main',
+            ],
+        },
         package_data={
             'notesco': [
                 'c_src/*.c',
