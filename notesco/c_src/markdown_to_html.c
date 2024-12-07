@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <Python.h>
 
 void print_buffer_size(size_t buffer_size) {
     double size_in_mb = (double)buffer_size / (1024 * 1024);  // convert bytes to MB
@@ -536,6 +537,59 @@ void parse_markdown_line(FILE* input, const char* line, FILE* output) {
     }
 }
 
+char* read_css_file(const char* css_path) {
+    FILE* css_file = fopen(css_path, "r");
+    if (!css_file) {
+        return NULL;
+    }
+    
+    fseek(css_file, 0, SEEK_END);
+    long css_size = ftell(css_file);
+    rewind(css_file);
+
+    char* css_content = (char*)malloc(css_size + 1);
+    if (!css_content) {
+        fclose(css_file);
+        return NULL;
+    }
+
+    size_t read_size = fread(css_content, 1, css_size, css_file);
+    css_content[read_size] = '\0';
+    fclose(css_file);
+
+    return css_content;
+}
+
+char* get_package_dir(void) {
+    PyObject* module = PyImport_ImportModule("notesco");
+    if (!module) {
+        return NULL;
+    }
+
+    PyObject* file_path = PyObject_GetAttrString(module, "__file__");
+    if (!file_path) {
+        Py_DECREF(module);
+        return NULL;
+    }
+
+    const char* module_path = PyUnicode_AsUTF8(file_path);
+    if (!module_path) {
+        Py_DECREF(file_path);
+        Py_DECREF(module);
+        return NULL;
+    }
+
+    char* package_dir = strdup(module_path);
+    char* last_slash = strrchr(package_dir, '/');
+    if (last_slash) {
+        *last_slash = '\0';
+    }
+
+    Py_DECREF(file_path);
+    Py_DECREF(module);
+    return package_dir;
+}
+
 int process_markdown_file(const char* input_filename, const char* output_filename) {
     // Open input file
     FILE* input = fopen(input_filename, "r");
@@ -553,7 +607,27 @@ int process_markdown_file(const char* input_filename, const char* output_filenam
     }
 
     // Write HTML header
-    fprintf(output, "<!DOCTYPE html>\n<html>\n<head>\n<title>Markdown to HTML</title>\n</head>\n<body>\n");
+    // fprintf(output, "<!DOCTYPE html>\n<html>\n<head>\n<title>Markdown to HTML</title>\n</head>\n<body>\n");
+    
+    char* package_dir = get_package_dir();
+    if (!package_dir) {
+        fclose(input);
+        fclose(output);
+        return 1;
+    }
+    char css_path[1024];
+    snprintf(css_path, sizeof(css_path), "%s/styles/default.css", package_dir);
+    free(package_dir);
+    
+    char* css_content = read_css_file(css_path);
+    
+    fprintf(output, "<!DOCTYPE html>\n<html>\n<head>\n");
+    fprintf(output, "<title>Markdown to HTML</title>\n");
+    if (css_content) {
+        fprintf(output, "<style>\n%s\n</style>\n", css_content);
+        free(css_content);
+    }
+    fprintf(output, "</head>\n<body>\n");
 
     // Process the file line by line
     char line[MAX_LINE_LENGTH];

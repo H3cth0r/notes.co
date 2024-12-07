@@ -24,6 +24,7 @@ setup(
             'notesco': [
                 'c_src/*.c',
                 'c_src/*.h',
+                'styles/*.css',
             ],
         },
         include_package_data=True,
